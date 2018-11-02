@@ -20,6 +20,7 @@ import org.gradle.language.AbstractNativeLanguageComponentIntegrationTest
 import org.gradle.nativeplatform.fixtures.RequiresInstalledToolChain
 import org.gradle.nativeplatform.fixtures.ToolChainRequirement
 import org.gradle.nativeplatform.fixtures.app.SourceElement
+import org.gradle.util.GUtil
 
 @RequiresInstalledToolChain(ToolChainRequirement.SWIFTC)
 abstract class AbstractSwiftComponentIntegrationTest extends AbstractNativeLanguageComponentIntegrationTest {
@@ -168,6 +169,42 @@ abstract class AbstractSwiftComponentIntegrationTest extends AbstractNativeLangu
 
         then:
         result.assertTasksExecuted(tasksToAssembleDevelopmentBinaryOfComponentUnderTest, ":$taskNameToAssembleDevelopmentBinary")
+    }
+
+    def "ignores compile and link tasks when current operating system family is excluded"() {
+        given:
+        makeSingleProject()
+        swift4Component.writeToProject(testDirectory)
+
+        and:
+        buildFile << """
+            ${componentUnderTestDsl} {
+                targetMachines = [machines.os('some-other-family')]
+            }
+        """
+
+        expect:
+        succeeds taskNameToAssembleDevelopmentBinary
+        result.assertTasksExecuted(":$taskNameToAssembleDevelopmentBinary")
+        result.assertTasksSkipped(":$taskNameToAssembleDevelopmentBinary")
+    }
+
+    def "fails configuration when no target machine is configured"() {
+        given:
+        makeSingleProject()
+        swift4Component.writeToProject(testDirectory)
+
+        and:
+        buildFile << """
+            ${componentUnderTestDsl} {
+                targetMachines = []
+            }
+        """
+
+        expect:
+        fails taskNameToAssembleDevelopmentBinary
+        failure.assertHasDescription("A problem occurred configuring root project '${testDirectory.name}'.")
+        failure.assertHasCause("A target machine needs to be specified for the ${GUtil.toWords(componentUnderTestDsl, (char) ' ')}.")
     }
 
     abstract String getDevelopmentBinaryCompileTask()
