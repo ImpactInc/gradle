@@ -54,18 +54,8 @@ abstract class AbstractInstalledToolChainIntegrationSpec extends AbstractIntegra
         if (toolChain.meets(ToolChainRequirement.WINDOWS_GCC)) {
             initScript << """
                 allprojects { p ->
-                    [
-                       "application": ["cpp-application", "swift-application"],
-                        "library": ["cpp-library", "swift-library"],
-                        "unitTest": ["cpp-unit-test"]
-                    ].each { block, plugins ->
-                        plugins.each { plugin ->
-                            p.pluginManager.withPlugin("${DefaultPluginManager.CORE_PLUGIN_PREFIX}\${plugin}") {
-                                "\${block}"({
-                                    targetMachines.set([machines.host().x86()])
-                                })
-                            }
-                        }
+                    components.WithType(CppComponent) { component ->
+                        component.targetMachines.set([machines.host().x86()])        
                     }            
                 }
             """
